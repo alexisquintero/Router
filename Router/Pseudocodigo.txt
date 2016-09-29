@@ -1,0 +1,84 @@
+﻿Eventos:
+	[1..n]	Arribo
+	[1]		Partida
+		Un arribo genera una partida si el servidor está desocupado.
+		Una partida genera otra partida si hay paquetes en cola.
+	La cola tiene un tamaño limitado.
+
+ARRIBO
+	Generar próximo arribo
+	SI el servidor está desocupado
+		Generar partida
+		Incrementar en 1 la cantidad de servicios
+		Poner al servidor en estado ocupado
+	SI NO
+		SI la cola está llena
+			Incrementar en 1 la cantidad de servicios negados
+		SI NO
+			Agregar el paquete a la cola
+			Incrementar en 1 la cantidad de paquetes en cola
+PARTIDA
+	SI hay paquetes en cola
+		Generar próxima partida
+		Decrementar en 1 la cantidad de paquetes en cola
+		Quitar al paquete de la cola
+		Incrementar en 1 la cantidad de servicios
+	SI NO
+		Poner el servidor en desocupado
+		tiempo prox partida = fin de simulacion + 1
+		
+Arribo:
+	Cuando se crea cada objeto computadora se genera su tiempo de arribo y se guarda en una 
+		variable de ese objeto. En el momento de elegir el próximo arribo, el más cercano, 
+		se copia esa variable a la lista de eventos, junto con el número de computadora (id)
+		y se genera un nuevo tiempo.
+
+Partida:
+	Generada por el modem
+
+Objetivo:
+	
+	Ver si se comportaba mejor una sola cola fifo o varias colas con prioridades. La variable
+	a medir es la cantidad de servicios negados. 
+
+Clases:
+	Simulador: clase con el programa principal
+	Computadora: cada una tiene su propio lambda, prioridad en la cola y porcentaje de 
+		prioridades de cada paquete (Ej: 5% Alto, 95% Normal)
+	Modem: tiene 2 formas de comportarse FIFO y Cola con prioridades, en ambos casos es 
+		una sola cola. 
+		Crea los objetos computadora.
+	Paquete: generado por la computadora
+	Generador:	-recibe mu y genera tiempo de servicio
+				-recibe lambda y genera tiempo de próxima llegada
+	Enumeradores: contiene enumeradores
+
+Otros:
+	Prioridad de cada computadora: Alta, media y baja
+	Prioridad de cada paquete: Alta y normal, solo se indica la probabilidad de prioridad 
+		alta, se genera un número aleatorio y si este es menor o igual a dicha probabilidad, 
+		entonces el paquete será de prioridad alta.
+
+Ideas:
+	-Iniciar la computadoras todas distintas dandole un rango para los parámetros y que el
+		generador genere los valores.
+	-Generar un número aleatorio de paquetes en cada tiempo desde cada computadora, en lugar 
+		de uno solo.
+	-Comprobar estabilidad aumentando un parámetro a saltos de X (crear una clase reporte y
+		guardarlos). Ej: variar probabilidad de prioridad alta de paquete de a saltos de 0.05
+
+OTROS:
+
+MTU: Maximum transmission unit, el paquete. El tamaño es en bytes   http://kb.netgear.com/app/answers/detail/a_id/25675/~/how-do-i-change-the-mtu-size-on-my-netgear-wireless-router%2Fdsl-gateway%3F
+MTU         Application
+1500        The largest Ethernet packet size.This setting is typical for connections that do not use PPPoE or VPN, and is the default value for NETGEAR routers, adapters, and switches.
+1492        Used in PPPoE environments.
+1472        Maximum size to use for pinging. (Larger packets are fragmented.)
+1468        Used in some DHCP environments.
+1460        Usable by AOL if you do not have large email attachments, for example.
+1436        Used in PPTP environments or with VPN.
+1400        Maximum size for AOL DSL.
+576         Typical value to connect to dial-up ISPs.
+
+Tamaño de la cola
+	64 parece ser lo más común https://www.cisco.com/c/en/us/support/docs/routers/7200-series-routers/110850-queue-limit-output-drops-ios.html
