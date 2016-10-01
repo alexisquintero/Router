@@ -8,34 +8,36 @@ namespace Router
 {
     class Computadora
     {
-        public double lambda { get; set; }
+        public static int cantidadPaquetesPrioridadAlta = 0;
+        private double lambda;
         public Enumeradores.PrioridadCola prioridad { get; set; }
-        public double paqueteAlta { get; set; } //Probabilidad de generar un paquete con prioridad alta
-        public double tiempoProximoPaquete { get; set; }
-        public Generador generador { get; set; }
+        private double paqueteAlta; //Probabilidad de generar un paquete con prioridad alta
+        public double tiempoProximoPaquete;
+        public int numeroDePaquetes { get; set; }   //Se usa en debug
 
-        public Computadora(double pLambda, Enumeradores.PrioridadCola pPrioridadCola, double probabilidadPaqueteAlta, Generador pGenerador)
+        public Computadora(double pLambda, Enumeradores.PrioridadCola pPrioridadCola, double probabilidadPaqueteAlta)
         {
             lambda = pLambda;
             prioridad = pPrioridadCola;
             paqueteAlta = probabilidadPaqueteAlta;
-            tiempoProximoPaquete = generaTiempoProxPaquete();
-            generador = pGenerador;
+            generaTiempoProxPaquete();            
         }
 
-        public double generaTiempoProxPaquete()
+        public void generaTiempoProxPaquete()
         {
-            return generador.generaArribo(lambda);
+            tiempoProximoPaquete = Generador.generaArribo(lambda);
+            numeroDePaquetes++;
         }
         public Paquete generaPaquete()
-        {
+        {           
             bool flagPrioridad = prioridadAlta() ? true : false;
             return new Paquete(flagPrioridad, prioridad);          
         }
         private bool prioridadAlta()
         {
-            if( generador.generaNumeroAleatorio() <= paqueteAlta)
+            if( Generador.generaNumeroAleatorio() <= paqueteAlta)
             {
+                cantidadPaquetesPrioridadAlta++;
                 return true;
             }
             else

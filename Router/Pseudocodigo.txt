@@ -82,3 +82,6 @@ MTU         Application
 
 Tamaño de la cola
 	64 parece ser lo más común https://www.cisco.com/c/en/us/support/docs/routers/7200-series-routers/110850-queue-limit-output-drops-ios.html
+
+mu del router -> 81274 packets por segundo
+	https://www.cisco.com/c/en/us/about/security-center/network-performance-metrics.html

@@ -8,24 +8,20 @@ namespace Router
 {
     class Generador
     {
-        private Random random;
-        public Generador()
+        private static Random random = new Random();
+        public static double generaArribo(double lambda)
         {
-            random = new Random();
+            double U = random.NextDouble();
+            return (-1 * Math.Log(U)) / lambda;
         }
-        public double generaArribo(double lambda)
+        public static double generaServicio(double mu)
         {
-            //TODO: programar, copiar del tp anterior
-            return null;
+            double U = random.NextDouble();
+            return (-1 * Math.Log(U)) / mu;
         }
-        public double generaServicio(double mu)
-        {
-            //TODO: programar, copiar del tp anterior
-            return null;
-        }
-        public double generaNumeroAleatorio()   //Se usa para determinar la prioridad del paquete
+        public static double generaNumeroAleatorio()   //Se usa para determinar la prioridad del paquete
         {
             return random.NextDouble();
-        }
+        }      
     }
 }

@@ -8,14 +8,18 @@ namespace Router
 {
     class Simulador
     {
+        public Simulador()
+        {
+            modem = new Modem();
+        }
         //Medidas de rendimiento
-        public int cantidadDeServiciosNegados { get; set; }
+        public static int cantidadDeServiciosNegados { get; set; }
         public int cantidadDeServicios { get; set; }    //Solo los no negados
 
         //Variables de estado
         public double reloj { get; set; }
         public double tiempoFinSimulacion { get; set; }
-        public double[] listaDeEventos { get; set; }    //Tiempo prox. arribo y prox. partida; Arribo = 0, Partida = 1
+        private double[] listaDeEventos = new double[2];    //Tiempo prox. arribo y prox. partida; Arribo = 0, Partida = 1
         public int nroComputadoraProximoEvento { get; set; }    //Nro. de la computadora que se va a utilizar en el prox. evento
         public Enumeradores.EstadoSistema estado { get; set; }  //0 = desocupado       
 
@@ -24,9 +28,10 @@ namespace Router
         private Enumeradores.ProximoEvento proximoEvento;
         private int nroDeComputadoras;
         private List<Computadora> computadoras;
-        private Generador generador = new Generador();
-        private Modem modem = new Modem();
+        private Modem modem;
         private double lambda;
+
+        private bool flagDebug = false;
 
         public void Simulacion()
         {
@@ -50,49 +55,51 @@ namespace Router
         }
         private void Inicializacion()
         {
-            tiempoFinSimulacion = 10000;
+            tiempoFinSimulacion = 10000;       //en ms, 10 segundo
             nroDeComputadoras = 4;
-            modem.mu = 0.5;
-            lambda = 0.4;
+            modem.mu = 812.74;                  //81274 packets por segundo con packets de 1500 bytes, 812.74 en 1 ms
+            lambda = 812.74/8;                       
             modem.tamanioMaximoCola = 64;   
             modem.modo = Enumeradores.modo.FIFO;
-            Paquete.valorPrioridadAlta = 5;
 
             reloj = 0;
             proximoEvento = Enumeradores.ProximoEvento.Arribo;
             estado = Enumeradores.EstadoSistema.Desocupado;
-            modem.cantidadDePaquetesEnCola = 0;
             cantidadDeServicios = 0;
             cantidadDeServiciosNegados = 0;
             listaDeEventos[(int)Enumeradores.ProximoEvento.Partida] = tiempoFinSimulacion * 2;  //tiempo prox. partida = infinito
+            computadoras = new List<Computadora>();
 
             inicializarComputadoras();
             generarProximoArribo();    
         }
         private void Tiempos()
         {
-
+            if(listaDeEventos[(int)Enumeradores.ProximoEvento.Arribo] <= listaDeEventos[(int)Enumeradores.ProximoEvento.Partida])
+            {
+                proximoEvento = Enumeradores.ProximoEvento.Arribo;
+                reloj += listaDeEventos[(int)Enumeradores.ProximoEvento.Arribo];
+            }
+            else
+            {
+                proximoEvento = Enumeradores.ProximoEvento.Partida;
+                reloj += listaDeEventos[(int)Enumeradores.ProximoEvento.Partida];
+            }
+            if (flagDebug) { debug(); }      
         }
         private void Arribo()
         {
             generarProximoArribo();
             if(estado == Enumeradores.EstadoSistema.Desocupado)
             {
+                computadoras.ElementAt(nroComputadoraProximoEvento).generaPaquete();    //se usa para controlar el porcentaje de paquetes creados con prioridad alta, nada más
                 generarProximaPartida();
                 cantidadDeServicios += 1;
                 estado = Enumeradores.EstadoSistema.Ocupado;
             }
             else
             {
-                if (modem.colaLlena())
-                {
-                    cantidadDeServiciosNegados += 1;
-                }
-                else
-                {
-                    modem.agregarACola(computadoras.ElementAt(nroComputadoraProximoEvento).generaPaquete());
-                    modem.cantidadDePaquetesEnCola += 1;
-                }
+                modem.agregarACola(computadoras.ElementAt(nroComputadoraProximoEvento).generaPaquete());    //El modem se encarga de si la cola está llena o no
             }
         }
         private void Partida()
@@ -100,7 +107,6 @@ namespace Router
             if (!modem.colaVacia())
             {
                 generarProximaPartida();
-                modem.cantidadDePaquetesEnCola -= 1;
                 modem.quitarPaquete();
                 cantidadDeServicios += 1;
             }
@@ -114,7 +120,9 @@ namespace Router
         {
             Console.WriteLine("Cantidad de servicios: {0}", cantidadDeServicios);
             Console.WriteLine("Cantidad de servicios negados: {0}", cantidadDeServiciosNegados);
-            Console.WriteLine("Proporción de servicios negados: {0}", cantidadDeServiciosNegados / cantidadDeServicios);
+            Console.WriteLine("Proporción de servicios negados: {0}", ((double)cantidadDeServiciosNegados / (double)cantidadDeServicios).ToString("0.00%"));
+            Console.WriteLine("Número de paquetes con alta prioridad: {0} \t Proporcion: {1}", Computadora.cantidadPaquetesPrioridadAlta, ((double)Computadora.cantidadPaquetesPrioridadAlta / ((double)cantidadDeServiciosNegados + (double)cantidadDeServicios)).ToString("0.00%"));
+            Console.ReadLine();
         }
         private void inicializarComputadoras()
         {
@@ -124,27 +132,51 @@ namespace Router
 
             for (int i = 0; i < nroDeComputadoras; i++)
             {
-                Computadora c = new Computadora(lambda, Enumeradores.PrioridadCola.Media, probabilidadPaqueteAlta, generador);
+                Computadora c = new Computadora(lambda, Enumeradores.PrioridadCola.Media, probabilidadPaqueteAlta);
                 computadoras.Add(c);
             }
         }    
         private void generarProximoArribo()
         {
-            double min = tiempoFinSimulacion; //Guarda el tiempo más chico
+            double min = tiempoFinSimulacion * 2; //Guarda el tiempo más chico
             int nro = 0;    //Nro. de la computadora con el tiempo más chico
             for (int i = 0; i < nroDeComputadoras; i++)
             {
                 if (computadoras.ElementAt(i).tiempoProximoPaquete < min)
                 {
                     nro = i;
+                    min = computadoras.ElementAt(i).tiempoProximoPaquete;
                 }
             }
-            listaDeEventos[(int)Enumeradores.ProximoEvento.Arribo] = reloj + min;
+            for (int i = 0; i < nroDeComputadoras; i++)         //Este loop le resta el tiempo más corto a los demás
+            {                                                   
+                if (!(i==nro))
+                {
+                    computadoras.ElementAt(i).tiempoProximoPaquete -= min;
+                }
+            }
+            listaDeEventos[(int)Enumeradores.ProximoEvento.Arribo] = min;
             nroComputadoraProximoEvento = nro;
+            computadoras.ElementAt(nro).generaTiempoProxPaquete();
         }
         private void generarProximaPartida()
         {
-            listaDeEventos[(int)Enumeradores.ProximoEvento.Partida] = reloj + modem.generarTiempoServicio();
+            listaDeEventos[(int)Enumeradores.ProximoEvento.Partida] = modem.generarTiempoServicio();
         }       
+        private void debug()
+        {
+            //Muestra en consola datos
+            Console.WriteLine("Reloj: {0}", reloj);
+            Console.WriteLine("Lista de eventos \t Arribo: {0} \t Partida: {1}", listaDeEventos[(int)Enumeradores.ProximoEvento.Arribo], listaDeEventos[(int)Enumeradores.ProximoEvento.Partida]);
+            for (int i = 0; i < nroDeComputadoras; i++)
+            {
+                Console.WriteLine("Nro. de computadora: {0} \t Tiempo prox. paquete {1} \t Nro. de paquetes: {2}", i, computadoras.ElementAt(i).tiempoProximoPaquete, computadoras.ElementAt(i).numeroDePaquetes);
+            }                  
+            Console.WriteLine("Nro. de paquetes: {0} \t Con prioridad alta: {1} \t Negados: {2}", cantidadDeServicios + cantidadDeServiciosNegados, Computadora.cantidadPaquetesPrioridadAlta, cantidadDeServiciosNegados);
+            Console.WriteLine("Tamaño de la cola: {0}", modem.cantidadDePaquetesEnCola());
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.ReadLine();
+        }
     }
 }
