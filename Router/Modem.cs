@@ -21,46 +21,40 @@ namespace Router
                 case Enumeradores.modo.FIFO:
                     if (colaLlena())
                     {
-                        Simulador.cantidadDeServiciosNegados++;
+                        if(paquete.prioridad == 0)
+                        {
+                            Simulador.cantidadDeServiciosNegadosPrioridadAlta++;
+                        }
+                        else
+                        {
+                            Simulador.cantidadDeServiciosNegadosPrioridadNormal++;
+                        }
                     }
                     else
                     {
                         colaFIFO.Enqueue(paquete);
                     }
                     break;
-                case Enumeradores.modo.Prioridades:
-                    colaPrioridad.Enqueue(paquete, paquete.prioridad);
+                case Enumeradores.modo.Prioridades:                   
                     if (colaLlena())
                     {
-                        colaPrioridad.Remove(colaPrioridad.Last());
-                        Simulador.cantidadDeServiciosNegados++;
+                        if (paquete.prioridad == 0)
+                        {
+                            Simulador.cantidadDeServiciosNegadosPrioridadAlta++;
+                        }
+                        else
+                        {
+                            Simulador.cantidadDeServiciosNegadosPrioridadNormal++;
+                        }                       
+                    }
+                    else
+                    {
+                        colaPrioridad.Enqueue(paquete, paquete.prioridad);
                     }
                     break;
                 default:
                     break;
-            }
-            /*
-            if(modo == Enumeradores.modo.FIFO)
-            {
-                if (colaLlena())
-                {
-                    Simulador.cantidadDeServiciosNegados++;
-                }else
-                {
-                    colaFIFO.Enqueue(paquete);
-                }             
-            }
-            if(modo == Enumeradores.modo.Prioridades)
-            {
-                colaPrioridad.Enqueue(paquete, paquete.prioridad);
-                if (colaLlena())
-                {
-                    colaPrioridad.Remove(colaPrioridad.Last());
-                    Simulador.cantidadDeServiciosNegados++;
-                }
-            }
-            */
-            
+            }            
         }
         public double generarTiempoServicio()
         {

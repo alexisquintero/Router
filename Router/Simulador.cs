@@ -13,7 +13,9 @@ namespace Router
             modem = new Modem();
         }
         //Medidas de rendimiento
-        public static int cantidadDeServiciosNegados { get; set; }
+        //public static int cantidadDeServiciosNegados { get; set; }
+        public static int cantidadDeServiciosNegadosPrioridadAlta { get; set; }
+        public static int cantidadDeServiciosNegadosPrioridadNormal { get; set; }
         public int cantidadDeServicios { get; set; }    //Solo los no negados
 
         //Variables de estado
@@ -55,18 +57,20 @@ namespace Router
         }
         private void Inicializacion()
         {
-            tiempoFinSimulacion = 10000;       //en ms, 10 segundo
+            tiempoFinSimulacion = 10000;       //en ms, 10 segundos
             nroDeComputadoras = 4;
             modem.mu = 812.74;                  //81274 packets por segundo con packets de 1500 bytes, 812.74 en 1 ms
             lambda = 812.74/8;                       
             modem.tamanioMaximoCola = 64;   
-            modem.modo = Enumeradores.modo.FIFO;
+            modem.modo = Enumeradores.modo.Prioridades;
 
             reloj = 0;
             proximoEvento = Enumeradores.ProximoEvento.Arribo;
             estado = Enumeradores.EstadoSistema.Desocupado;
             cantidadDeServicios = 0;
-            cantidadDeServiciosNegados = 0;
+            //cantidadDeServiciosNegados = 0;
+            cantidadDeServiciosNegadosPrioridadAlta = 0;
+            cantidadDeServiciosNegadosPrioridadNormal = 0;
             listaDeEventos[(int)Enumeradores.ProximoEvento.Partida] = tiempoFinSimulacion * 2;  //tiempo prox. partida = infinito
             computadoras = new List<Computadora>();
 
@@ -118,10 +122,19 @@ namespace Router
         }
         private void Reporte()
         {
-            Console.WriteLine("Cantidad de servicios: {0}", cantidadDeServicios);
-            Console.WriteLine("Cantidad de servicios negados: {0}", cantidadDeServiciosNegados);
-            Console.WriteLine("Proporción de servicios negados: {0}", ((double)cantidadDeServiciosNegados / (double)cantidadDeServicios).ToString("0.00%"));
-            Console.WriteLine("Número de paquetes con alta prioridad: {0} \t Proporcion: {1}", Computadora.cantidadPaquetesPrioridadAlta, ((double)Computadora.cantidadPaquetesPrioridadAlta / ((double)cantidadDeServiciosNegados + (double)cantidadDeServicios)).ToString("0.00%"));
+            int serviciosNegados = cantidadDeServiciosNegadosPrioridadAlta + cantidadDeServiciosNegadosPrioridadNormal;
+            int cantidadDePaquetes = cantidadDeServicios + serviciosNegados;
+            double proporcionServiciosNegados = (((double)cantidadDeServiciosNegadosPrioridadAlta + (double)cantidadDeServiciosNegadosPrioridadNormal) / (double)cantidadDeServicios);
+            double proporcionServiciosNegadosPrioridadAlta = (double)cantidadDeServiciosNegadosPrioridadAlta / (double)cantidadDeServicios;
+            double proporcionServiciosNegadosPrioridadAltaDeServiciosNegados = (double)cantidadDeServiciosNegadosPrioridadAlta / ((double)cantidadDeServiciosNegadosPrioridadAlta + (double)cantidadDeServiciosNegadosPrioridadNormal);
+            double proporcionServiciosNegadosPrioridadNormal = (double)cantidadDeServiciosNegadosPrioridadNormal / (double)cantidadDeServicios;
+            double proporcionServiciosNegadosPrioridadNormalDeServiciosNegados = (double)cantidadDeServiciosNegadosPrioridadNormal / ((double)cantidadDeServiciosNegadosPrioridadAlta + (double)cantidadDeServiciosNegadosPrioridadNormal);
+
+            Console.WriteLine("Cantidad de servicios: {0} \t Cantidad de paquetes creados: {1}", cantidadDeServicios, cantidadDePaquetes);
+            Console.WriteLine("Cantidad de servicios negados: {0} \t Proporción: {1}", serviciosNegados, proporcionServiciosNegados.ToString("0.00000%"));
+            Console.WriteLine("Cantidad de servicios negados con prioridad alta: {0} \t Proporcion: {1} \t proporcion de servicios negados: {2}", cantidadDeServiciosNegadosPrioridadAlta, proporcionServiciosNegadosPrioridadAlta.ToString("0.00000%"), proporcionServiciosNegadosPrioridadAltaDeServiciosNegados.ToString("0.00000%"));
+            Console.WriteLine("Cantidad de servicios negados con prioridad normal: {0} \t Proporcion: {1} \t proporcion de servicios negados: {2}", cantidadDeServiciosNegadosPrioridadNormal, proporcionServiciosNegadosPrioridadNormal.ToString("0.00000%"), proporcionServiciosNegadosPrioridadNormalDeServiciosNegados.ToString("0.00000%"));
+            Console.WriteLine("Número de paquetes con alta prioridad: {0} \t Proporcion: {1}", Computadora.cantidadPaquetesPrioridadAlta, ((double)Computadora.cantidadPaquetesPrioridadAlta / ((double)serviciosNegados + (double)cantidadDeServicios)).ToString("0.00000%"));
             Console.ReadLine();
         }
         private void inicializarComputadoras()
@@ -172,7 +185,7 @@ namespace Router
             {
                 Console.WriteLine("Nro. de computadora: {0} \t Tiempo prox. paquete {1} \t Nro. de paquetes: {2}", i, computadoras.ElementAt(i).tiempoProximoPaquete, computadoras.ElementAt(i).numeroDePaquetes);
             }                  
-            Console.WriteLine("Nro. de paquetes: {0} \t Con prioridad alta: {1} \t Negados: {2}", cantidadDeServicios + cantidadDeServiciosNegados, Computadora.cantidadPaquetesPrioridadAlta, cantidadDeServiciosNegados);
+            //Console.WriteLine("Nro. de paquetes: {0} \t Con prioridad alta: {1} \t Negados: {2}", cantidadDeServicios + cantidadDeServiciosNegados, Computadora.cantidadPaquetesPrioridadAlta, cantidadDeServiciosNegados);
             Console.WriteLine("Tamaño de la cola: {0}", modem.cantidadDePaquetesEnCola());
             Console.WriteLine();
             Console.WriteLine();

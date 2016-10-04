@@ -30,7 +30,7 @@ namespace Router
         }
         public Paquete generaPaquete()
         {           
-            bool flagPrioridad = prioridadAlta() ? true : false;
+            bool flagPrioridad = prioridadAlta();
             return new Paquete(flagPrioridad, prioridad);          
         }
         private bool prioridadAlta()
