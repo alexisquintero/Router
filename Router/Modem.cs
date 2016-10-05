@@ -3,22 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Priority_Queue;
 
 namespace Router
 {
     class Modem
     {
-        private Queue<Paquete> colaFIFO = new Queue<Paquete>();
-        private SimplePriorityQueue<Paquete> colaPrioridad = new SimplePriorityQueue<Paquete>();
+        private Queue<Paquete> colaFIFO = new Queue<Paquete>(); 
+        private List<Paquete> colaPrioridad = new List<Paquete>();
         public double mu { get; set; }
         public int tamanioMaximoCola { get; set; }
         public Enumeradores.modo modo { get; set; }
+        private bool modoNormalColaPrioridad = true;    
+                                                        
         public void agregarACola(Paquete paquete)
         {
             switch (modo)
             {
-                case Enumeradores.modo.FIFO:
+                case Enumeradores.modo.FIFO:                   
                     if (colaLlena())
                     {
                         if(paquete.prioridad == 0)
@@ -35,22 +36,56 @@ namespace Router
                         colaFIFO.Enqueue(paquete);
                     }
                     break;
-                case Enumeradores.modo.Prioridades:                   
-                    if (colaLlena())
+                case Enumeradores.modo.Prioridades:
+                    if (modoNormalColaPrioridad)
                     {
-                        if (paquete.prioridad == 0)
-                        {
-                            Simulador.cantidadDeServiciosNegadosPrioridadAlta++;
+                        if (colaLlena())
+                        {                                                
+                            if (paquete.prioridad == 0)
+                            {                              
+                                Simulador.cantidadDeServiciosNegadosPrioridadAlta++;
+                            }
+                            else
+                            {
+                                Simulador.cantidadDeServiciosNegadosPrioridadNormal++; 
+                            }
                         }
                         else
                         {
-                            Simulador.cantidadDeServiciosNegadosPrioridadNormal++;
-                        }                       
+                            colaPrioridad.Add(paquete);                           
+                            colaPrioridad = colaPrioridad.OrderBy(p => p).ToList();
+                        } 
                     }
+                    
                     else
                     {
-                        colaPrioridad.Enqueue(paquete, paquete.prioridad);
-                    }
+                        if (colaLlena())                                                        //Si la cola está llena
+                        {
+                            if(paquete.prioridad == 0)                                          //y el paquete tiene prioridad alta
+                            {
+                                if (colaPrioridad.Last().prioridad != 0)                        //y el último paquete de la cola no tiene prioridad alta
+                                {
+                                    colaPrioridad.Remove(colaPrioridad.Last());                 //se elimina el último paquete de la cola y se agrega el paquete 
+                                    colaPrioridad.Add(paquete);                                 //con prioridad alta
+                                    colaPrioridad = colaPrioridad.OrderBy(p => p).ToList();
+                                    Simulador.cantidadDeServiciosNegadosPrioridadNormal++;
+                                }
+                                else
+                                {
+                                    Simulador.cantidadDeServiciosNegadosPrioridadAlta++;
+                                }
+                            }
+                            else                                                                //Si no es un paquete con prioridad alta se le niega servicios
+                            {
+                                Simulador.cantidadDeServiciosNegadosPrioridadNormal++;
+                            }
+                        }
+                        else
+                        {
+                            colaPrioridad.Add(paquete);
+                            colaPrioridad = colaPrioridad.OrderBy(p => p).ToList();
+                        }
+                    }                   
                     break;
                 default:
                     break;
@@ -92,7 +127,7 @@ namespace Router
                     colaFIFO.Dequeue();
                     break;
                 case Enumeradores.modo.Prioridades:
-                    colaPrioridad.Dequeue();
+                    colaPrioridad.Remove(colaPrioridad.Last());
                     break;
                 default:
                     break;
